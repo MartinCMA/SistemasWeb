@@ -1,0 +1,92 @@
+* {
+  /*
+  Para debugging:
+  border: red 1px solid;
+  */
+  font-family: 'Consolas';
+}
+
+body {
+  background-color: #ffffff; /* Fondo blanco */
+}
+
+section {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  padding: 2%;
+  border-radius: 10px;
+  border: 2px black solid;
+  /* Eliminé el box-shadow para quitar el efecto de "popup" */
+}
+
+header,
+footer,
+nav {
+  padding: 5px;
+}
+
+h1 {
+  font-size: 25px;
+}
+
+ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+nav button,
+#audioList li {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+ul li * {
+  flex: 1;
+}
+
+nav button {
+  width: 80%;
+  margin: 5px auto;
+  border: 2px black solid;
+  border-radius: 10px;
+  padding: 5px;
+
+  color: beige;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+button:enabled {
+  background-color: #F50158;
+  cursor: pointer;
+}
+
+button:disabled {
+  background-color: #616161;
+  cursor: not-allowed;
+}
+
+nav span {
+  text-align: left;
+  margin-top: 5px;
+}
+
+#audioList span {
+  text-align: center;
+}
+
+#audioList li {
+  margin: 10px;
+}
+
+li img {
+  margin: 0 0;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
