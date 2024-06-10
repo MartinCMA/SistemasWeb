@@ -4,8 +4,9 @@ var mongojs = require('mongojs');
 var db = mongojs(dirdb, ['recordings']);
 var multer = require('multer');
 var router = express.Router();
-var fs = require('fs');
 const path = require('path');
+const fs = require("fs");
+
 
 // const passport = require('passport');
 // const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -23,22 +24,23 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 2500000 }, 
-  fileFilter: function (req, file, cb) {
-    if (file.mimetype === 'audio/ogg') {
-      cb(null, true);
-    } else {
-      cb(new Error('Formato de archivo no admitido. Solo se permiten archivos de audio Ogg.'), false);
+  limits: {
+    fileSize: 2500000,
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype !== 'audio/ogg') {
+      return cb(null, false, new Error('Wrong format.'));
     }
+    cb(null, true);
   }
-}).single("recording");
+}).single("recordings");
 
 
 
 router.get('/list/:name', async function (req, res, next) {
   try {
     const result = await handleList(req.params.name);
-    console.log('rapido', result.data);
+    console.log('Lista de api de audios:', result.data);
     res.send(result.data);
   } catch (error) {
     console.error(error);
@@ -51,119 +53,141 @@ router.get('/', function (req, res, next) {
   res.redirect('/api/play/' + IDFichero);
 });
 
-router.post("/upload/:name", (req, res, next) => {
+// router.post("/upload/:name", (req, res, next) => {
+//     // Asegúrate de que el middleware para cargar archivos esté configurado correctamente
+//     if (!req.file) {
+//       return res.status(400).send('No file uploaded');
+//     }
+  
+//     // Inserta el nuevo registro en la base de datos
+//     db.recordings.insert({
+//       name: req.params.name,
+//       filename: req.file.filename,
+//       date: Date.now(),
+//       accessed: Date.now()
+//     }, (err, newRecord) => {
+//       if (err) {
+//         console.error(err);
+//         return res.status(500).send('Error inserting record');
+//       }
+  
+//       // Llama a la función handleList y envía la respuesta
+//       handleList(req.params.name)
+//         .then(result => res.send(result))
+//         .catch(handleListError => {
+//           console.error(handleListError);
+//           res.status(500).send('Error handling list');
+//         });
+//     });
+// });
+
+
+router.post('/upload/:name', (req, res) => {
+  console.log("Fuera Req.parmas.name", req.params.name);
+  // console.log("Fuera Req.file", req.file);
+  // if (!req.file) {
+  //     return res.status(400).send('No file uploaded');
+  // }
   upload(req, res, async (err) => {
-    if (err) {
-      return res.status(500).send(err.message);
-    }
-
-    const name = req.params.name;
-    const filename = req.file.filename;
-    const date = new Date();
-    const accessed = 0;
-
-    try {
-      await client.connect();
-      const database = client.db('grabaciones'); 
-      const collection = database.collection('recordings');
-
-      await collection.insertOne({ userId: name, filename, date, accessed });
-
-      const listResult = await handleList(name);
-
-      res.status(200).json({ message: "Archivo subido exitosamente", listResult });
-    } finally {
-      await client.close();
-    }
-  });
+    // console.log("Req.params.name", req.params.name);
+    // console.log("Req.file", req.file);
+    if (!err) {
+      db.recordings.insert({
+        name: req.params.name,
+        filename: req.file? req.file.filename : req.params.name,
+        date: Date.now(),
+        accessed: Date.now()
+      });
+      handleList(req.params.name)
+        .then(r => res.send((r)));
+    } else { console.log(err) }
+  })
 });
 
-const handleList = async (id) => {
-  try {
-    await client.connect();
-    const database = client.db('grabaciones'); 
-    const collection = database.collection('recordings');
 
-    const recordings = await collection.find({ userId: id })
-      .sort({ date: -1 })
-      .limit(5)
-      .toArray();
-
-    const response = recordings.map(record => ({
-      id: record._id.toString(), 
-      filename: record.filename,
-      date: record.date,
-      accessed: record.accessed
-    }));
-
-    return response;
-  } finally {
-    await client.close();
-  }
+const handleList = async (name) => {
+  return new Promise((resolve, reject) => {
+    db.recordings.find({ name: name }, (err, doc) => {
+      if (err) {
+        reject(err);
+      } else {
+        if (doc) {
+          var sortedData = doc.sort((r1, r2) => r2.date - r1.date).slice(0, 5);
+          var jsonData = { data: sortedData };
+          console.log(jsonData);
+          resolve(jsonData);
+        } else {
+          resolve({ data: [] });
+        }
+      }
+    });
+  });
 };
 
-router.post("/api/delete/:name/:filename", async (req, res, next) => {
-  const userId = req.params.name;
-  const filename = req.params.filename;
-    debugger
-  try {
-    await client.connect();
-    const database = client.db('grabaciones'); 
-    const collection = database.collection('recordings');
 
-    const filePath = path.join(__dirname, 'recordings', filename);
-    await fs.unlink(filePath);
-
-    await collection.updateOne(
-      { 'users.name': userId },
-      { $pull: { users: { filename: filename } } }
-    );
-
-    const listResult = await handleList(userId);
-
-    res.status(200).json({ message: "Archivo eliminado exitosamente", listResult });
-  } catch (error) {
-    console.error("Error al eliminar el archivo:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  } finally {
-    await client.close();
-  }
+router.post("/delete/:name/:filename", async (req, res, next) => {
+  console.log('name:' + req.params.name);
+  console.log('filename:' + req.params.filename);
+  db.recordings.remove({ filename: req.params.filename, name: req.params.name });
+  var filepath = `./recordings/${req.params.filename}`;
+  fs.unlink(filepath, (err => {
+    if (err) console.log(err);
+    else {
+      console.log("Deleted file from recordings");
+    }
+  }));
+  handleList(req.params.userId)
+    .then(r => res.send(JSON.stringify(r)));
 });
 
-router.get("/api/play/:filename", async (req, res, next) => {
-  const filename = req.params.filename;
+router.get("/play/audio/:filename", (req, res, next) =>{
+  res.render("audio.ejs");
+} )
 
-  try {
-    const filePath = path.join(__dirname, 'recordings', filename);
-    const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
-
-    if (!fileExists) {
-      return res.status(404).json({ error: "Archivo no encontrado" });
+router.get("/play/:filename", (req, res, next) => {
+  console.log(req.params.filename);
+  var filepath = `./recordings/${req.params.filename}`;
+  console.log(filepath);
+  fs.exists(filepath, (exists) => {
+    if (exists) {
+      console.log('Existe');
+      db.recordings.updateOne(
+        { filename: req.params.filename },
+        { $set: { accessed: Date.now() } }
+      );
+      res.sendFile(path.resolve(filepath));
+    } else {
+      console.log('No existe');
+      /*res.status(404).render('error');*/
     }
-
-    await client.connect();
-    const database = client.db('grabaciones'); 
-    const collection = database.collection('recordings');
-
-    // Actualizar la fecha de último acceso en la base de datos
-    await collection.updateOne(
-      { 'users.filename': filename },
-      { $set: { 'users.$.accessed': Date.now() } }
-    );
-
-    res.sendFile(filePath);
-  } catch (error) {
-    console.error("Error al reproducir el archivo:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  } finally {
-    await client.close();
-  }
+  });
 });
 
 router.get("/play/:filename", (req, res, next) =>{
   res.render("audio.ejs");
 } )
 
+
+function cleanup() {
+  let tsNow = Date.now();
+  db.recordings.find({}, (err, doc) => {
+    if (err) {
+      res.send(err);
+    } else {
+      let idCaducados = doc.filter(r => tsNow - r.accessed > 432000000).map(r => r.filename);
+      db.recordings.remove({ filename: { $in: idCaducados } });
+      idCaducados.forEach(fileaborr => {
+        var filepath = `./recordings/${fileaborr}`;
+        fs.unlink(filepath, err => {
+          if (err) console.log(err);
+          else {
+            console.log("Deleted file from recordings");
+          }
+        });
+      });
+    }
+  });
+};
 
 module.exports.router = router;
 module.exports.cleanup = cleanup;

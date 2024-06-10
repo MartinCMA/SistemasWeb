@@ -7,13 +7,13 @@ export class AudioManager {
 
     async init() {
         this.audioList = document.getElementById('audioList');
-        fetch('../api/list/index.html')
-            .then(response => response.json())
-            .then(data => {
-                data.files.forEach(audio => {
+        fetch(`../api/list/${this.uuid}`)
+            .then(r => r.json())
+            .then(r => {console.log("Lista de grabaciones:", r);
+                r.forEach(audio => {
                     this.addAudio(audio.filename, audio.date);
                 });
-            }); 
+            });
     }
 
     addAudio(audioId, audioDate) {
@@ -27,7 +27,7 @@ export class AudioManager {
         deleteIcon.src = './images/trash.svg';
 
         copyIcon.onclick = () => this.copyAudioUrl(audioId);
-        deleteIcon.onclick = () => this.deleteAudioFile(audioId);
+        deleteIcon.onclick = () => this.deleteAudio(audioId);
         
         const listItem = document.createElement('li');
         listItem.filename = audioId;
@@ -39,26 +39,28 @@ export class AudioManager {
         this.totalAudios++;
     }
 
-    copyAudioUrl(audioId) {
-        navigator.clipboard.writeText(`/play/${audioId}`);
-        Snackbar.show({ 
-            text: 'Se ha copiado la URL',
-            pos: 'bottom-center',
-            actionText: 'OK',
-            actionTextColor: '#F50158'
+    copyAudioUrl(idAudio) {
+        const url = "localhost:3000/api/play/audio/" + idAudio;
+        navigator.clipboard.writeText(url).then(() => {
+            Snackbar.show({
+                text: 'La URL ha sido correctamente copiada al portapapeles.',
+                pos: 'bottom-center',
+                actionText: 'VALE',
+                actionTextColor: '#F50158'
+            });
         });
     }
 
-    deleteAudioFile(audioId) {
-        fetch(`../api/delete/${this.uuid}/${audioId}`, {method: 'POST'}).then(r => {
-            console.log('Hecha petición de borrado.');
+    deleteAudio(idAudio) {
+        debugger;
+        fetch(`../api/delete/${this.uuid}/${idAudio}`, {method: 'POST'}).then(r => {
+            console.log('Borrar audio');
         });
-        
-        var root=document.getElementById('ulAudio');
-        while( root.firstChild ){
-          root.removeChild( root.firstChild );
-        }
-        window.location.reload();
-        this.audioHandler.init();  
+        var root=document.getElementById('audioList');
+                while( root.firstChild ){
+                  root.removeChild( root.firstChild );
+                }
+                // window.location.reload();
+                this.init();    
     }
 }

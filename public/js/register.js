@@ -30,7 +30,27 @@ function main() {
     };
 
     btnRegister.onclick = () => {
-        sendRequest("/register", { name: lblName.value, pass: lblPass.value });
+        fetch("/register", {
+            method: 'POST',
+            redirect: 'follow',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: lblName.value, pass: lblPass.value })
+        })
+        .then(response => response.json())
+        .then(response=>{
+            if(response.name===lblName.value){
+                debugger;
+                window.location.href = "/main" 
+            }else{
+                console.log('Usuario ya existente');
+                const text = document.createElement('UD');
+                text.innerText='Usuario ya existente'
+                document.body.appendChild(text)
+            } 
+        })
     };
 }
 

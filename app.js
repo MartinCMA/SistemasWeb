@@ -8,7 +8,7 @@ const multer = require('multer');
 
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var api = require('./routes/api');
 
 var app = express();
 
@@ -23,7 +23,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/api', api.router);
 
 // const uri = 'mongodb://localhost:27017'; 
 // const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -43,6 +43,8 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+setInterval(api.cleanup, 3600000);
 
 
 module.exports = app;

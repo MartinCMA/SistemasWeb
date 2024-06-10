@@ -20,6 +20,7 @@ class App {
     this.recordButton = null; 
     this.playButton = null; 
     this.uploadButton = null; 
+    
   }
 
   init() {
@@ -40,13 +41,8 @@ class App {
       liRecordButton.appendChild(this.recordButton);
       liPlayButton.appendChild(this.playButton);
       liUploadButton.appendChild(this.uploadButton);
-
-      if (!localStorage.getItem("uuid")) {
-        localStorage.setItem("uuid", v4());
-      }
-
-      this.uuid = localStorage.getItem("uuid");
-
+      if (!localStorage.getItem('uuid')) localStorage.setItem('uuid', v4());
+      this.uuid = localStorage.getItem('uuid'); 
       this.audioManager = new AudioManager(this.uuid);
       this.audioManager.init();
 
@@ -55,12 +51,12 @@ class App {
       this.initAudio();
       this.initRecord(stream);
 
-      fetch("/api/list")
-          .then((res) => res.json())
-          .then((json) => {
-            console.log(json);
-          })
-          .catch((err) => console.error('Error al obtener la lista de archivos:', err));
+      // fetch("/api/list")
+      //     .then((res) => res.json())
+      //     .then((json) => {
+      //       console.log(json);
+      //     })
+      //     .catch((err) => console.error('Error al obtener la lista de archivos:', err));
 
       this.setState({ isRecording: false, isPlaying: false, recordCache: false });
     };
@@ -101,7 +97,7 @@ class App {
     // };
 
     // mediaRecorder.onstop = () => {
-    //   this.setState({ recording: false });
+    //   this.setState({ recordings: false });
     // };
 
     // this.setState({ mediaRecorder, stream });
@@ -200,49 +196,46 @@ class App {
       return `${minutes}:${seconds}`;
   }
 
-  upload() {
-    console.log("upload")
-
-    this.setState({ uploading: true }); // estado actual: uploading
-    const body = new FormData(); // Mediante FormData podremos subir el audio al servidor
-    body.append("recording", this.blob); // en el atributo recording de formData guarda el audio para su posterior subida
-
-    fetch("/api/upload/" + this.uuid, {
-      method: "POST", // usaremos el método POST para subir el audio
-      body,
-      })
-      .then((res) => res.json()) // el servidor, una vez recogido el audio, devolverá la lista de todos los ficheros a nombre del presente usuario (inlcuido el que se acaba de subir)
-      .then((json) => {
-        this.setState({
-          files: json.files, // todos los ficheros del usuario
-          uploading: false, // actualizar el estado actual
-          uploaded: true, // actualizar estado actual
-        });
-    })
-    .catch((err) => {
-      this.setState({ error: true });
-    });
-  }
-
-
   async uploadAudio() {
 
-    fetch(`/api/upload/${this.uuid}`,
-    {
-        method: 'POST',
-        body: this.blob
-    });
+    // fetch(`/api/upload/${this.uuid}`,
+    // {
+    //     method: 'POST',
+    //     body: this.blob
+    // });
 
+    debugger;
     const formData = new FormData();
     formData.append('recordings', this.blob);
     await fetch(`/api/upload/${this.uuid}`, { method: 'POST', body: formData });
-    var root = document.getElementById('ulAudio');
+    var root = document.getElementById('audioList');
     while (root.firstChild) {
         root.removeChild(root.firstChild);
     }
-    this.audioHandler.init();
+    this.audioManager.init();
+
+    // this.setState({ uploading: true });
+    // const body = new FormData();
+    // body.append("recordings", this.blob);
+    // fetch("/api/upload/" + this.uuid, {
+    //   method: "POST",
+    //   body,
+    // })
+    //   .then((res) => res.json())
+    //   .then((json) => {
+    //     debugger;
+    //     console.log("Se ha conseguido recibir el json", json);
+    //     this.audioManager.init();
+    //   })
+    //   .catch((err) => {
+    //     debugger;
+    //     this.setState({ error: true });
+    //   });
   }
+
 }
+
+
 
 
 function logout_m() {
@@ -259,29 +252,17 @@ function logout_m() {
       }
   };
 
-  const sendRequest = (url, data) => {
-    return fetch(url, {
-        method: 'POST',
-        redirect: 'follow',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(handleResponse)
-    .catch(error => console.error('Error:', error));
-};
-
   btnLogout.onclick = () => {
-      debugger;
-      sendRequest("/login", { name: 'null' });
+    debugger;
+    fetch("/login", {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+      },
+      body:JSON.stringify({ name: 'null'})
+    }).then(r=>{window.location.href = "/logout"  })
   };
 
 }
