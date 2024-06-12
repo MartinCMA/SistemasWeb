@@ -133,7 +133,7 @@ router.post("/delete/:name/:filename", async (req, res, next) => {
   fs.unlink(filepath, (err => {
     if (err) console.log(err);
     else {
-      console.log("Deleted file from recordings");
+      console.log("borrar de recordings");
     }
   }));
   handleList(req.params.userId)
@@ -150,14 +150,13 @@ router.get("/play/:filename", (req, res, next) => {
   console.log(filepath);
   fs.exists(filepath, (exists) => {
     if (exists) {
-      console.log('Existe');
       db.recordings.updateOne(
         { filename: req.params.filename },
         { $set: { accessed: Date.now() } }
       );
       res.sendFile(path.resolve(filepath));
     } else {
-      console.log('No existe');
+      console.log("asd")
       /*res.status(404).render('error');*/
     }
   });
